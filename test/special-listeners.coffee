@@ -87,7 +87,7 @@ testSubscription = (server, el, done, node, jid, els) ->
     server.emit "stanza", el.root()
 # }}}
 # {{{ Tests
-describe "Pusher component", ->
+describe "Special listeners", ->
     server = new TestServer()
 
 # {{{ items
