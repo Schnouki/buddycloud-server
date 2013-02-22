@@ -393,10 +393,13 @@ class Transaction
         , (err, res) ->
             cb err, res?.rows?.map((row) -> row.listener)
 
-    walkModeratorAuthorizationRequests: (user, forPusher, iter, cb) ->
-        if forPusher
+    walkModeratorAuthorizationRequests: (user, userType, iter, cb) ->
+        if userType is 'all'
             listenerCond = ''
             params = []
+        else if userType is 'public'
+            # "Public" special listeners don't need to know about private channels
+            return cb()
         else
             listenerCond = 'AND "user"=$1'
             params = [user]
@@ -678,15 +681,20 @@ class Transaction
     # MAM
     #
     # @param cb: Function(err, results)
-    walkListenerArchive: (listener, start, end, max, forPusher, iter, cb) ->
+    walkListenerArchive: (listener, listenerType, start, end, max, iter, cb) ->
         db = @db
-        if forPusher
+        if listenerType is 'all'
             params = []
+            conds = ""
+            listenerCond = ""
+        else if listenerType is 'public'
+            params = []
+            conds = "AND node IN (SELECT node FROM open_nodes)"
             listenerCond = ""
         else
             params = [listener]
+            conds = ""
             listenerCond = "AND listener=$1"
-        conds = ""
         i = params.length
         if start
             conds += "AND updated >= $#{i += 1}::timestamp"

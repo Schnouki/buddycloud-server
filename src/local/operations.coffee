@@ -134,6 +134,17 @@ class ModelOperation extends Operation
     transaction: (t, cb) ->
         cb null
 
+    fetchNodeConfig: (t, cb) ->
+        unless @req.node
+            return cb()
+
+        t.getConfig @req.node, (err, config) =>
+            if err
+                return cb err
+
+            @nodeConfig = config
+            cb()
+
 
 class PrivilegedOperation extends ModelOperation
 
@@ -184,17 +195,6 @@ class PrivilegedOperation extends ModelOperation
             @filterAffiliation = @filterAffiliationModerator
 
         cb()
-
-    fetchNodeConfig: (t, cb) ->
-        unless @req.node
-            return cb()
-
-        t.getConfig @req.node, (err, config) =>
-            if err
-                return cb err
-
-            @nodeConfig = config
-            cb()
 
     checkAccessModel: (t, cb) ->
         # Deny any outcast
@@ -1198,10 +1198,14 @@ class ReplayArchive extends ModelOperation
         catch e
             return cb e
 
-        forPusher = (@req.sender is @router.pusherJid)
+        senderType = "user"
+        if @router.specialListeners.publicChannels? and @req.sender in @router.specialListeners.publicChannels
+            senderType = "public"
+        else if @router.specialListeners.allChannels? and @req.sender in @router.specialListeners.allChannels
+            senderType = "all"
 
         async.waterfall [ (cb2) =>
-            t.walkListenerArchive @req.sender, @req.start, @req.end, max, forPusher, (results) =>
+            t.walkListenerArchive @req.sender, senderType, @req.start, @req.end, max, (results) =>
                 total += results.length
                 if sent < max
                     results.sort (a, b) ->
@@ -1218,7 +1222,7 @@ class ReplayArchive extends ModelOperation
             , cb2
         , (cb2) =>
             sent = 0
-            t.walkModeratorAuthorizationRequests @req.sender, forPusher, (req) =>
+            t.walkModeratorAuthorizationRequests @req.sender, senderType, (req) =>
                 total += 1
                 if sent < max
                     req.type = 'authorizationPrompt'
@@ -1396,6 +1400,12 @@ class Notify extends ModelOperation
                     cb3()
             , cb2
         , (cb2) =>
+            # Fetch node config if we need to add special listeners
+            if @router.specialListeners.publicChannels?
+                @fetchNodeConfig t, cb2
+            else
+                cb2()
+        , (cb2) =>
             # Then, retrieve all listeners
             # (assuming all updates pertain one single node)
 
@@ -1427,9 +1437,11 @@ class Notify extends ModelOperation
             , (err) =>
                 cb2 err, moderatorListeners, otherListeners
         , (moderatorListeners, otherListeners, cb2) =>
-            # If a pusher component is configured, it must be notified too
-            if @router.pusherJid?
-                moderatorListeners.push @router.pusherJid
+            # Notify special listeners too
+            if @router.specialListeners.allChannels?
+                moderatorListeners = moderatorListeners.concat @router.specialListeners.allChannels
+            if @router.specialListeners.publicChannels? and @nodeConfig.accessModel is 'open'
+                moderatorListeners = moderatorListeners.concat @router.specialListeners.publicChannels
 
             # Send out through backends
             if moderatorListeners.length > 0

@@ -44,10 +44,15 @@ exports.checkCreateNode = function(opts) {
 	(opts.nodeUser.split("@")[1] === "topics.EXAMPLE.COM");
 };
 
-// JID of the pusher. This component will be notified of *all* events, including
-// those on private channels. If you don't know what the pusher component is, or
-// if you don't have one, you really should leave this commented.
-//exports.pusherJid = "pusher.EXAMPLE.COM";
+// JIDs of special listeners (users or components). They will be notified of
+// *all* events, either on public channels only () or on all channels, including
+// privates ones. This is only intended to be used by the crawler/search
+// component and by the pusher component. If you don't know what they are, or if
+// you don't use any of them, you should really leave this commented.
+exports.specialListeners = {
+    //publicChannels: [ "crawler@EXAMPLE.COM" ];
+    //allChannels: [ "pusher.EXAMPLE.COM" ];
+};
 
 // autosubscribe users to a few channels
 exports.autosubscribeNewUsers = [
