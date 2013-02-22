@@ -85,7 +85,7 @@ class exports.TestServer extends EventEmitter
             checkCreateNode: -> true
             specialListeners:
                 allChannels: ["pusher.example.org"]
-                publicChannels: ["search.example.org"]
+                publicChannels: ["crawler@example.org"]
             autosubscribeNewUsers: []
         @server = server.startServer @config
 
@@ -100,6 +100,10 @@ class exports.TestServer extends EventEmitter
         @messages = {}
 
         @emit "online"
+
+        # Send a presence from the crawler user
+        p = new ltx.Element("presence", from: "crawler@example.org/abc")
+        @emit "stanza", p.root()
 
     # Prepare an IQ stanza.
     # @return [ltx.Element] `<iq type="TYPE" from="FROM" to="TO" id="ID"/>`
@@ -308,7 +312,7 @@ class exports.TestServer extends EventEmitter
         badRunner = (event) ->
             return (data) ->
                 process.nextTick ->
-                    cb_done new Error "bad event: #{event}"
+                    cb_done new Error "bad event: #{event} (#{data})"
 
         if badEvents?
             for event in badEvents

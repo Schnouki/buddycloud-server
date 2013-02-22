@@ -100,7 +100,7 @@ describe "Special listeners", ->
 
             server.doTests iq, cb,
                 "got-message-pusher.example.org": testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
-                "got-message-search.example.org": testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
+                "got-message-crawler@example.org/abc": testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
 
         , (cb) ->
             # Notification of a post to a remote open channel
@@ -112,7 +112,7 @@ describe "Special listeners", ->
 
             server.doTests msgEl, cb,
                 "got-message-pusher.example.org": testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
-                "got-message-search.example.org": testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
+                "got-message-crawler@example.org/abc": testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
 
         , (cb) ->
             # Post to a local closed channel
@@ -122,7 +122,7 @@ describe "Special listeners", ->
 
             server.doTests iq, cb,
                 "got-message-pusher.example.org": testPostMessage "/user/data@enterprise.sf/posts", "push-A-5",
-                "got-message-search.example.org"
+                ["got-message-crawler@example.org/abc"]
 
         , (cb) ->
             # Notification of a post to a remote closed channel
@@ -134,8 +134,13 @@ describe "Special listeners", ->
 
             server.doTests msgEl, cb,
                 "got-message-pusher.example.org": testPostMessage "/user/odo@ds9.sf/posts", "push-A-6",
-                "got-message-search.example.org"
-        ], done
+                ["got-message-crawler@example.org/abc"]
+        ], (err) ->
+            # Wait a second before removing listeners for unwanted messages
+            setTimeout ->
+                server.removeAllListeners "got-message-crawler@example.org/abc"
+                done err
+            , 1000
 
     it "should be notified of retracted items", (done) ->
         async.series [(cb) ->
