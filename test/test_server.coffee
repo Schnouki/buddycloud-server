@@ -83,7 +83,9 @@ class exports.TestServer extends EventEmitter
                 level: "TRACE"
                 file: "test-suite.log"
             checkCreateNode: -> true
-            pusherJid: "pusher.example.org"
+            specialListeners:
+                allChannels: ["pusher.example.org"]
+                publicChannels: ["search.example.org"]
             autosubscribeNewUsers: []
         @server = server.startServer @config
 

@@ -93,24 +93,48 @@ describe "Special listeners", ->
 # {{{ items
     it "should be notified of published items", (done) ->
         async.series [(cb) ->
-            # Post to a local channel
+            # Post to a local open channel
             iq = server.makePublishIq "picard@enterprise.sf", "buddycloud.example.org",
                 "push-A-1", "/user/picard@enterprise.sf/posts",
                 id: "push-A-1", content: "Test post A1"
 
-            server.doTest iq, "got-message-pusher.example.org", cb,
-                testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
+            server.doTests iq, cb,
+                "got-message-pusher.example.org": testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
+                "got-message-search.example.org": testPostMessage "/user/picard@enterprise.sf/posts", "push-A-1"
 
         , (cb) ->
-            # Notification of a post to a remote channel
+            # Notification of a post to a remote open channel
             entryEl = server.makeAtom content: "Test post A2", author_uri: "acct:sisko@ds9.sf", id: "push-A-2"
             msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
                     .c("items", node: "/user/sisko@ds9.sf/posts")
                     .c("item", id: "push-A-2")
                     .cnode(entryEl)
 
-            server.doTest msgEl, "got-message-pusher.example.org", cb,
-                testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
+            server.doTests msgEl, cb,
+                "got-message-pusher.example.org": testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
+                "got-message-search.example.org": testPostMessage "/user/sisko@ds9.sf/posts", "push-A-2"
+
+        , (cb) ->
+            # Post to a local closed channel
+            iq = server.makePublishIq "data@enterprise.sf", "buddycloud.example.org",
+                "push-A-5", "/user/data@enterprise.sf/posts",
+                id: "push-A-5", content: "Test post A5"
+
+            server.doTests iq, cb,
+                "got-message-pusher.example.org": testPostMessage "/user/data@enterprise.sf/posts", "push-A-5",
+                "got-message-search.example.org"
+
+        , (cb) ->
+            # Notification of a post to a remote closed channel
+            entryEl = server.makeAtom content: "Test post A6", author_uri: "acct:sisko@ds9.sf", id: "push-A-6"
+            msgEl = server.makePubsubEventMessage("buddycloud.ds9.sf", "buddycloud.example.org")
+                    .c("items", node: "/user/odo@ds9.sf/posts")
+                    .c("item", id: "push-A-6")
+                    .cnode(entryEl)
+
+            server.doTests msgEl, cb,
+                "got-message-pusher.example.org": testPostMessage "/user/odo@ds9.sf/posts", "push-A-6",
+                "got-message-search.example.org"
         ], done
 
     it "should be notified of retracted items", (done) ->
